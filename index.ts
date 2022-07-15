@@ -35,7 +35,7 @@ app.post('/', async (req, res) => {
     else if (eventType === 'topic_created') {
       await authAxios.post('/posts.json', {
         topic_id: body.topic.id,
-        raw: 'This post has been reserved for the proposal summary',
+        raw: "This post has been reserved for GovAlpha's proposal summary",
       })
       res.status(200).end()
     } else if (eventType === 'topic_edited') {
@@ -48,7 +48,7 @@ app.post('/', async (req, res) => {
       if (!latestBotReply)
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
-          raw: 'This post has been reserved for the proposal summary',
+          raw: "This post has been reserved for GovAlpha's proposal summary",
         })
       res.status(200).end()
     } else res.status(200).end()
