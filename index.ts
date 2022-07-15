@@ -32,8 +32,8 @@ app.post('/', async (req, res) => {
     if (!headerHash) res.status(400).end()
     else if (hash !== headerHash) res.status(403).end()
     else if (!authAxios) res.status(200).end()
-    // Make it work only for topics created after July 15, 2022
-    else if (new Date(body.topic.created_at).getTime() >= 1657854000000) {
+    // Make it work only for topics created after July 15, 2022 @18:30
+    else if (new Date(body.topic.created_at).getTime() >= 1657909800000) {
       if (eventType === 'topic_created')
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
