@@ -32,24 +32,26 @@ app.post('/', async (req, res) => {
     if (!headerHash) res.status(400).end()
     else if (hash !== headerHash) res.status(403).end()
     else if (!authAxios) res.status(200).end()
-    else if (eventType === 'topic_created') {
-      await authAxios.post('/posts.json', {
-        topic_id: body.topic.id,
-        raw: "This post has been reserved for GovAlpha's proposal summary",
-      })
-      res.status(200).end()
-    } else if (eventType === 'topic_edited') {
-      const topicRes = await unAuthAxios.get(`/t/${body.topic.id}.json`)
-      const topicData = topicRes.data
-      const latestBotReply = topicData.post_stream.posts
-        .reverse()
-        .find((post: any) => post.username === DISCOURSE_API_USERNAME)
-
-      if (!latestBotReply)
+    // Make it work only for topics created after July 15, 2022
+    else if (new Date(body.topic.created_at).getTime() >= 1657854000000) {
+      if (eventType === 'topic_created')
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
           raw: "This post has been reserved for GovAlpha's proposal summary",
         })
+      else if (eventType === 'topic_edited') {
+        const topicRes = await unAuthAxios.get(`/t/${body.topic.id}.json`)
+        const topicData = topicRes.data
+        const latestBotReply = topicData.post_stream.posts
+          .reverse()
+          .find((post: any) => post.username === DISCOURSE_API_USERNAME)
+
+        if (!latestBotReply)
+          await authAxios.post('/posts.json', {
+            topic_id: body.topic.id,
+            raw: "This post has been reserved for GovAlpha's proposal summary",
+          })
+      }
       res.status(200).end()
     } else res.status(200).end()
   } catch (err) {
