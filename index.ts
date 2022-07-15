@@ -2,11 +2,12 @@ import express from 'express'
 import { config } from 'dotenv'
 import { HmacSHA256 } from 'crypto-js'
 
-import { authAxios } from './config'
+import { authAxios, unAuthAxios } from './config'
 
 config()
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ''
+const DISCOURSE_API_USERNAME = process.env.DISCOURSE_API_USERNAME || ''
 
 const app = express()
 app.use(express.json())
@@ -36,6 +37,19 @@ app.post('/', async (req, res) => {
         topic_id: body.topic.id,
         raw: 'This post has been reserved for the proposal summary',
       })
+      res.status(200).end()
+    } else if (eventType === 'topic_edited') {
+      const topicRes = await unAuthAxios.get(`/t/${body.topic.id}.json`)
+      const topicData = topicRes.data
+      const latestBotReply = topicData.post_stream.posts
+        .reverse()
+        .find((post: any) => post.username === DISCOURSE_API_USERNAME)
+
+      if (!latestBotReply)
+        await authAxios.post('/posts.json', {
+          topic_id: body.topic.id,
+          raw: 'This post has been reserved for the proposal summary',
+        })
       res.status(200).end()
     } else res.status(200).end()
   } catch (err) {

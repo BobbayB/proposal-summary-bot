@@ -14,3 +14,7 @@ export const authAxios =
           'Api-Username': DISCOURSE_API_USERNAME,
         },
       })
+
+export const unAuthAxios = axios.create({
+  baseURL: DISCOURSE_URL,
+})
