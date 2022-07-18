@@ -18,3 +18,9 @@ export const authAxios =
 export const unAuthAxios = axios.create({
   baseURL: DISCOURSE_URL,
 })
+
+export const allowedCategories = [
+  14, // MIPS
+  25, // Signal Requests
+  15, // RFC
+]

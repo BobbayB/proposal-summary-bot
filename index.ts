@@ -2,7 +2,7 @@ import express from 'express'
 import { config } from 'dotenv'
 import { HmacSHA256 } from 'crypto-js'
 
-import { authAxios, unAuthAxios } from './config'
+import { authAxios, unAuthAxios, allowedCategories } from './config'
 
 config()
 
@@ -32,8 +32,11 @@ app.post('/', async (req, res) => {
     if (!headerHash) res.status(400).end()
     else if (hash !== headerHash) res.status(403).end()
     else if (!authAxios) res.status(200).end()
-    // Make it work only for topics created after July 15, 2022 @18:30
-    else if (new Date(body.topic.created_at).getTime() >= 1657909800000) {
+    // Make it work only for topics created after July 15, 2022 @18:30 and topics with an allowed category
+    else if (
+      new Date(body.topic.created_at).getTime() >= 1657909800000 &&
+      allowedCategories.includes(body.topic.category_id)
+    ) {
       if (eventType === 'topic_created')
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
@@ -49,7 +52,7 @@ app.post('/', async (req, res) => {
         if (!latestBotReply)
           await authAxios.post('/posts.json', {
             topic_id: body.topic.id,
-            raw: "This post has been reserved for GovAlpha's proposal summary",
+            raw: `This post has been reserved for GovAlpha's proposal summary on proposal ${body.topic.title}`,
           })
       }
       res.status(200).end()
