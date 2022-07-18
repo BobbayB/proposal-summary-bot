@@ -20,7 +20,6 @@ export const unAuthAxios = axios.create({
 })
 
 export const allowedCategories = [
-  14, // MIPS
   25, // Signal Requests
   15, // RFC
 ]
