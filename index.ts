@@ -40,7 +40,7 @@ app.post('/', async (req, res) => {
       if (eventType === 'topic_created')
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
-          raw: "This post has been reserved for GovAlpha's proposal summary",
+          raw: `This post has been reserved for GovAlpha's proposal summary on proposal ${body.topic.title}`,
         })
       else if (eventType === 'topic_edited') {
         const topicRes = await unAuthAxios.get(`/t/${body.topic.id}.json`)
