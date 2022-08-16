@@ -14,6 +14,10 @@ const SERVICE_EMAIL = process.env.SERVICE_EMAIL || ''
 const SERVICE_EMAIL_PRIVATE_KEY = process.env.SERVICE_EMAIL_PRIVATE_KEY || ''
 const SPREADSHEET_ID = '1D56OjdxbifGTqXymvK8aoRPN2Y0cO-lkTL1Fc5dJUuY'
 
+const app = express()
+app.use(express.json())
+const port = process.env.PORT || 5000
+
 const JwtClient = new google.auth.JWT(
   SERVICE_EMAIL,
   undefined,
@@ -21,14 +25,6 @@ const JwtClient = new google.auth.JWT(
   ['https://www.googleapis.com/auth/spreadsheets']
 )
 const sheetsClient = google.sheets({ version: 'v4', auth: JwtClient })
-
-// const auth = new GoogleAuth({
-//   authClient: servi
-// })
-
-const app = express()
-app.use(express.json())
-const port = process.env.PORT || 5000
 
 app.post('/', async (req, res) => {
   try {
