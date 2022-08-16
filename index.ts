@@ -1,13 +1,31 @@
 import express from 'express'
 import { config } from 'dotenv'
 import { HmacSHA256 } from 'crypto-js'
+import { google } from 'googleapis'
 
-import { authAxios, unAuthAxios, allowedCategories } from './config'
+import { authAxios, allowedCategories } from './config'
+import RepliedTopic from './db/models/RepliedTopic'
 
 config()
+require('./db/connection')
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ''
-const DISCOURSE_API_USERNAME = process.env.DISCOURSE_API_USERNAME || ''
+const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY || ''
+const SERVICE_EMAIL = process.env.SERVICE_EMAIL || ''
+const SERVICE_EMAIL_PRIVATE_KEY = process.env.SERVICE_EMAIL_PRIVATE_KEY || ''
+const SPREADSHEET_ID = '1D56OjdxbifGTqXymvK8aoRPN2Y0cO-lkTL1Fc5dJUuY'
+
+const JwtClient = new google.auth.JWT(
+  SERVICE_EMAIL,
+  undefined,
+  SERVICE_EMAIL_PRIVATE_KEY,
+  ['https://www.googleapis.com/auth/spreadsheets']
+)
+const sheetsClient = google.sheets({ version: 'v4', auth: JwtClient })
+
+// const auth = new GoogleAuth({
+//   authClient: servi
+// })
 
 const app = express()
 app.use(express.json())
@@ -34,26 +52,55 @@ app.post('/', async (req, res) => {
     else if (!authAxios) res.status(200).end()
     // Make it work only for topics created after July 15, 2022 @18:30 and topics with an allowed category
     else if (
-      new Date(body.topic.created_at).getTime() >= 1657909800000 &&
+      new Date(body.topic.created_at).getTime() >= 1660586400000 &&
       allowedCategories.includes(body.topic.category_id)
     ) {
-      if (eventType === 'topic_created')
+      const repliedTopics = await RepliedTopic.find({
+        topicId: body.topic.id,
+      }).select('topicId -_id')
+      if (
+        !repliedTopics.length &&
+        (eventType === 'topic_created' || eventType === 'topic_edited')
+      ) {
         await authAxios.post('/posts.json', {
           topic_id: body.topic.id,
           raw: `This post has been reserved for GovAlpha's proposal summary on proposal ${body.topic.title}`,
         })
-      else if (eventType === 'topic_edited') {
-        const topicRes = await unAuthAxios.get(`/t/${body.topic.id}.json`)
-        const topicData = topicRes.data
-        const latestBotReply = topicData.post_stream.posts
-          .reverse()
-          .find((post: any) => post.username === DISCOURSE_API_USERNAME)
+        await RepliedTopic.create({ topicId: body.topic.id })
+        const sheetRes = await sheetsClient.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Parameters!B2',
+        })
 
-        if (!latestBotReply)
-          await authAxios.post('/posts.json', {
-            topic_id: body.topic.id,
-            raw: `This post has been reserved for GovAlpha's proposal summary on proposal ${body.topic.title}`,
-          })
+        const rowNumber = sheetRes.data.values?.at(0)?.at(0)
+
+        await sheetsClient.spreadsheets.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: {
+            requests: [
+              {
+                insertDimension: {
+                  range: {
+                    sheetId: 0,
+                    dimension: 'ROWS',
+                    startIndex: rowNumber,
+                    endIndex: rowNumber + 1,
+                  },
+                  inheritFromBefore: true,
+                },
+              },
+            ],
+          },
+        })
+
+        await sheetsClient.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `Summary Organizer Sheet!D${rowNumber + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[body.topic.title]],
+          },
+        })
       }
       res.status(200).end()
     } else res.status(200).end()
