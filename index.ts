@@ -10,7 +10,6 @@ config()
 require('./db/connection')
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || ''
-const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY || ''
 const SERVICE_EMAIL = process.env.SERVICE_EMAIL || ''
 const SERVICE_EMAIL_PRIVATE_KEY = process.env.SERVICE_EMAIL_PRIVATE_KEY || ''
 const SPREADSHEET_ID = '1D56OjdxbifGTqXymvK8aoRPN2Y0cO-lkTL1Fc5dJUuY'
