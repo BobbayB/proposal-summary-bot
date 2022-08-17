@@ -45,9 +45,9 @@ app.post('/', async (req, res) => {
     if (!headerHash) res.status(400).end()
     else if (hash !== headerHash) res.status(403).end()
     else if (!authAxios) res.status(200).end()
-    // Make it work only for topics created after July 15, 2022 @18:30 and topics with an allowed category
+    // Make it work only for topics created after August 17, 2022 @20:00 and topics with an allowed category
     else if (
-      new Date(body.topic.created_at).getTime() >= 1660586400000 &&
+      new Date(body.topic.created_at).getTime() >= 1660766400000 &&
       allowedCategories.includes(body.topic.category_id)
     ) {
       const repliedTopics = await RepliedTopic.find({
@@ -64,10 +64,11 @@ app.post('/', async (req, res) => {
         await RepliedTopic.create({ topicId: body.topic.id })
         const sheetRes = await sheetsClient.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: 'Parameters!B2',
+          range: 'Parameters!B2:B3',
         })
 
-        const rowNumber = sheetRes.data.values?.at(0)?.at(0)
+        const rowNumber = +sheetRes.data.values?.at(0)?.at(0)
+        const refNumber = +sheetRes.data.values?.at(1)?.at(0)
 
         await sheetsClient.spreadsheets.batchUpdate({
           spreadsheetId: SPREADSHEET_ID,
@@ -88,12 +89,30 @@ app.post('/', async (req, res) => {
           },
         })
 
-        await sheetsClient.spreadsheets.values.append({
+        await sheetsClient.spreadsheets.values.batchUpdate({
           spreadsheetId: SPREADSHEET_ID,
-          range: `Summary Organizer Sheet!D${rowNumber + 1}`,
-          valueInputOption: 'USER_ENTERED',
           requestBody: {
-            values: [[body.topic.title]],
+            valueInputOption: 'USER_ENTERED',
+            data: [
+              {
+                range: `Summary Organizer Sheet!A${rowNumber + 1}`,
+                values: [[refNumber + 1]],
+              },
+              {
+                range: `Summary Organizer Sheet!D${rowNumber + 1}`,
+                values: [
+                  [
+                    `=HYPERLINK("https://forum.makerdao.com/t/${body.topic.id}","${body.topic.title}")`,
+                  ],
+                ],
+              },
+              {
+                range: `Summary Organizer Sheet!T${rowNumber + 1}`,
+                values: [
+                  [new Date(body.topic.created_at).toLocaleDateString()],
+                ],
+              },
+            ],
           },
         })
       }
